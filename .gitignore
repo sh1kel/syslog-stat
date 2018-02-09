@@ -1,0 +1,16 @@
+# GoLand
+/.idea/**
+
+# Vendor folders (govendor)
+/vendor/**
+!/vendor/vendor.json
+
+# Build artifacts
+/artifacts/
+
+# Debugging output
+/AwesomeSQLUpdater.exe
+/AwesomeSQLUpdater
+/debug
+
+
