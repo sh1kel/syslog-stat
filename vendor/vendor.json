@@ -1,0 +1,43 @@
+{
+	"comment": "",
+	"ignore": "test",
+	"package": [
+		{
+			"checksumSHA1": "op++1yFhmH2TptO0uqjeF5J3faU=",
+			"path": "gitlab.youdo.sg/sysadmins/syslog-go",
+			"revision": "560f05caa4f75e06b1ece9d43571d2f854da8934",
+			"revisionTime": "2018-02-09T12:08:41Z"
+		},
+		{
+			"checksumSHA1": "TShvgY4gpvGGQvOSVQTWTtSFO38=",
+			"path": "gopkg.in/mcuadros/go-syslog.v2",
+			"revision": "9cf13b7327c0e153da3cba3540c2ae2b879c3859",
+			"revisionTime": "2016-10-11T17:43:29Z"
+		},
+		{
+			"checksumSHA1": "cCSjCUbzXN88zL80ulZAg5iVr/Y=",
+			"path": "gopkg.in/mcuadros/go-syslog.v2/format",
+			"revision": "9cf13b7327c0e153da3cba3540c2ae2b879c3859",
+			"revisionTime": "2016-10-11T17:43:29Z"
+		},
+		{
+			"checksumSHA1": "vTfr6a5y9D7tYzYWQUZebomOkBs=",
+			"path": "gopkg.in/mcuadros/go-syslog.v2/internal/syslogparser",
+			"revision": "9cf13b7327c0e153da3cba3540c2ae2b879c3859",
+			"revisionTime": "2016-10-11T17:43:29Z"
+		},
+		{
+			"checksumSHA1": "P25L0Jjo6CtxTkNKQpWoLWJWnPM=",
+			"path": "gopkg.in/mcuadros/go-syslog.v2/internal/syslogparser/rfc3164",
+			"revision": "9cf13b7327c0e153da3cba3540c2ae2b879c3859",
+			"revisionTime": "2016-10-11T17:43:29Z"
+		},
+		{
+			"checksumSHA1": "eBx0t9XBJz+OC2k69iFwraxni9o=",
+			"path": "gopkg.in/mcuadros/go-syslog.v2/internal/syslogparser/rfc5424",
+			"revision": "9cf13b7327c0e153da3cba3540c2ae2b879c3859",
+			"revisionTime": "2016-10-11T17:43:29Z"
+		}
+	],
+	"rootPath": "gitlab.youdo.sg/sysadmins/syslog-go"
+}
