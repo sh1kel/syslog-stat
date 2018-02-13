@@ -3,6 +3,9 @@ package main
 import (
 	"fmt"
 	"gopkg.in/mcuadros/go-syslog.v2"
+	"log"
+	nativesyslog "log/syslog"
+	"net/http"
 	"runtime"
 	"strings"
 	"sync"
@@ -27,8 +30,9 @@ type emailMessage struct {
 }
 
 type messageList struct {
-	Messages map[string]*emailMessage
-	mtx      sync.RWMutex
+	Messages     map[string]*emailMessage
+	msgProccesed int64
+	mtx          sync.RWMutex
 }
 
 type logMsg struct {
@@ -57,7 +61,6 @@ func (m *messageList) Save(key, val string) {
 	}
 	if m.CheckComplete(key) {
 		exportChan <- key
-		go fmt.Printf("Q len: %d\n", len(m.Messages))
 	}
 }
 
@@ -68,8 +71,6 @@ func (m *messageList) Delete(key string) {
 }
 
 func (m *messageList) CheckComplete(key string) bool {
-	// m.Messages[key].mtx.RLock()
-	// defer m.Messages[key].mtx.RUnlock()
 	m.mtx.RLock()
 	defer m.mtx.RUnlock()
 	if m.Messages[key].From != "" {
@@ -167,7 +168,10 @@ func (msg *emailMessage) UpdateMessage(logRecord string) {
 func WriteOut(msgList *messageList) {
 	for key := range exportChan {
 		msg := msgList.Load(key)
-		fmt.Printf("From: %s To: %s Relay: %s Delay: %s Status: %s\n", msg.From, msg.To, msg.Relay, msg.Delay, msg.StatusCode) //, msg.RawRecord)
+		//log.Printf("From: %s To: %s Relay: %s Delay: %s Status: %s\n", msg.From, msg.To, msg.Relay, msg.Delay, msg.StatusCode) //, msg.RawRecord)
+		for i := 0; i < len(msg.RawRecord); i++ {
+			log.Println(msg.RawRecord[i])
+		}
 		cleanChan <- key
 	}
 }
@@ -176,6 +180,9 @@ func WriteOut(msgList *messageList) {
 func proccessParseQueue(msgList *messageList) {
 	for msg := range parseChan {
 		msgList.Save(msg.sessionId, msg.payload)
+		msgList.mtx.Lock()
+		msgList.msgProccesed++
+		msgList.mtx.Unlock()
 	}
 }
 
@@ -186,16 +193,31 @@ func cleanQueue(msgList *messageList) {
 	}
 }
 
+// Сервер со статистикоц
+func (msgList *messageList) webStat(w http.ResponseWriter, r *http.Request) {
+	msgList.mtx.RLock()
+	fmt.Fprintf(w, "Queue length: %d\nProccessed messages: %d\n", len(msgList.Messages), msgList.msgProccesed)
+	msgList.mtx.RUnlock()
+}
+
 func main() {
 	msgList := Init()
 	runtime.GOMAXPROCS(16)
 	handler := syslog.NewChannelHandler(channel)
 
+	logwriter, err := nativesyslog.New(nativesyslog.LOG_LOCAL3, "syslog-go")
+	if err == nil {
+		log.SetOutput(logwriter)
+	}
+
 	server := syslog.NewServer()
 	server.SetFormat(syslog.RFC5424)
 	server.SetHandler(handler)
-	server.ListenUDP("0.0.0.0:5140")
+	server.ListenUDP("127.0.0.1:5141")
 	server.Boot()
+
+	http.HandleFunc("/stat", msgList.webStat)
+	go http.ListenAndServe("127.0.0.1:8081", nil)
 
 	go func(channel syslog.LogPartsChannel) {
 		for logParts := range channel {
