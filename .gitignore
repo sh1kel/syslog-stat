@@ -9,8 +9,8 @@
 /artifacts/
 
 # Debugging output
-/AwesomeSQLUpdater.exe
-/AwesomeSQLUpdater
 /debug
+/syslog-go
 
-
+# tests
+/test/tests
