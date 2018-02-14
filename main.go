@@ -16,6 +16,7 @@ var (
 	exportChan = make(chan string, 100)
 	parseChan  = make(chan *logMsg, 100)
 	cleanChan  = make(chan string, 100)
+	syslogChan = make(chan string, 100)
 	logwriter  *nativesyslog.Writer
 )
 
@@ -26,7 +27,6 @@ type emailMessage struct {
 	Delay      string
 	StatusCode string
 	StatusMsg  string
-	RawRecord  []string
 	mtx        sync.RWMutex
 }
 
@@ -60,6 +60,7 @@ func (m *messageList) Save(key, val string) {
 		m.mtx.Unlock()
 		m.Messages[key].UpdateMessage(val)
 	}
+	syslogChan <- val
 	if m.CheckComplete(key) {
 		exportChan <- key
 	}
@@ -80,14 +81,7 @@ func (m *messageList) CheckComplete(key string) bool {
 				if m.Messages[key].Delay != "" {
 					if m.Messages[key].StatusCode != "" {
 						if m.Messages[key].StatusMsg != "" {
-							// return true
-
-							if len(m.Messages[key].RawRecord) == 6 {
-								return true
-							} else {
-								return false
-							}
-
+							return true
 						} else {
 							return false
 						}
@@ -136,7 +130,6 @@ func (msg *emailMessage) UpdateMessage(logRecord string) {
 		from := strings.TrimPrefix(stringParts[0], "from=<")
 		msg.mtx.Lock()
 		msg.From = strings.TrimSuffix(from, ">")
-		msg.RawRecord = append(msg.RawRecord, logRecord)
 		msg.mtx.Unlock()
 		return
 	}
@@ -155,25 +148,23 @@ func (msg *emailMessage) UpdateMessage(logRecord string) {
 		msg.Delay = strings.Split(stringParts[2], "=")[1]
 		msg.StatusCode = splitStatuses[0]
 		msg.StatusMsg = splitStatuses[1]
-		msg.RawRecord = append(msg.RawRecord, logRecord)
 		msg.mtx.Unlock()
 		return
 	}
-	// Добавляем строку в любом случае
-	msg.mtx.Lock()
-	msg.RawRecord = append(msg.RawRecord, logRecord)
-	msg.mtx.Unlock()
 }
 
 // Очередь на вывод (syslog и zabbix)
 func WriteOut(msgList *messageList) {
 	for key := range exportChan {
 		msg := msgList.Load(key)
-		//log.Printf("From: %s To: %s Relay: %s Delay: %s Status: %s\n", msg.From, msg.To, msg.Relay, msg.Delay, msg.StatusCode) //, msg.RawRecord)
-		for i := 0; i < len(msg.RawRecord); i++ {
-			logwriter.Info(key + ": " + msg.RawRecord[i])
-		}
+		fmt.Printf("From: %s To: %s Relay: %s Delay: %s Status: %s\n", msg.From, msg.To, msg.Relay, msg.Delay, msg.StatusCode)
 		cleanChan <- key
+	}
+}
+
+func SyslogOut() {
+	for msg := range syslogChan {
+		logwriter.Info(msg)
 	}
 }
 
@@ -238,6 +229,7 @@ func main() {
 	go proccessLogChannel()
 	go proccessParseQueue(msgList)
 	go WriteOut(msgList)
+	go SyslogOut()
 	go cleanQueue(msgList)
 	/*
 		go func(channel syslog.LogPartsChannel) {
