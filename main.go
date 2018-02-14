@@ -108,7 +108,7 @@ func (m *messageList) CheckComplete(key string) bool {
 	}
 }
 
-func Init() *messageList {
+func QueueInit() *messageList {
 	return &messageList{
 		Messages: make(map[string]*emailMessage),
 	}
@@ -223,7 +223,7 @@ func init() {
 }
 
 func main() {
-	msgList := Init()
+	msgList := QueueInit()
 	handler := syslog.NewChannelHandler(channel)
 
 	server := syslog.NewServer()
