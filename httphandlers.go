@@ -25,8 +25,9 @@ func (domainDelay *delays) avgDelay(w http.ResponseWriter, r *http.Request) {
 			total += d
 		}
 		fmt.Fprintf(w, "%.2f\n", total/float32(len(domain[1])))
+		domainDelay.dTable[domain[1]] = []float32{}
 	}
-	domainDelay.dTable[domain[1]] = []float32{}
+
 	domainDelay.mtx.Unlock()
 }
 
