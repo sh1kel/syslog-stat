@@ -34,7 +34,7 @@ func main() {
 
 	for scanner.Scan() {
 		buf := []byte(scanner.Text())
-		fmt.Printf("%s\n", buf)
+		//fmt.Printf("%s\n", buf)
 		_, err := Conn.Write(buf)
 		if err != nil {
 			fmt.Println(err)

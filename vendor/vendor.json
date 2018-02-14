@@ -3,6 +3,12 @@
 	"ignore": "test",
 	"package": [
 		{
+			"checksumSHA1": "DNO7SHhfRl03fRuatpumBgHE6vI=",
+			"path": "github.com/blacked/go-zabbix",
+			"revision": "3c6a95ec4fdc345b48c4e0e5f5c87d48d3fc40b5",
+			"revisionTime": "2017-01-18T04:09:03Z"
+		},
+		{
 			"checksumSHA1": "op++1yFhmH2TptO0uqjeF5J3faU=",
 			"path": "gitlab.youdo.sg/sysadmins/syslog-go",
 			"revision": "560f05caa4f75e06b1ece9d43571d2f854da8934",
