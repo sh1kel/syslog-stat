@@ -21,7 +21,7 @@ func main() {
 	}
 	defer file.Close()
 	scanner := bufio.NewScanner(file)
-	ServerAddr, err := net.ResolveUDPAddr("udp", "127.0.0.1:5140")
+	ServerAddr, err := net.ResolveUDPAddr("udp", "127.0.0.1:5141")
 	CheckError(err)
 
 	LocalAddr, err := net.ResolveUDPAddr("udp", "127.0.0.1:0")

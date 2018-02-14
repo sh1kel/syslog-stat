@@ -16,6 +16,7 @@ var (
 	exportChan = make(chan string, 100)
 	parseChan  = make(chan *logMsg, 100)
 	cleanChan  = make(chan string, 100)
+	logwriter  *nativesyslog.Writer
 )
 
 type emailMessage struct {
@@ -170,7 +171,7 @@ func WriteOut(msgList *messageList) {
 		msg := msgList.Load(key)
 		//log.Printf("From: %s To: %s Relay: %s Delay: %s Status: %s\n", msg.From, msg.To, msg.Relay, msg.Delay, msg.StatusCode) //, msg.RawRecord)
 		for i := 0; i < len(msg.RawRecord); i++ {
-			log.Println(msg.RawRecord[i])
+			logwriter.Info(key + ": " + msg.RawRecord[i])
 		}
 		cleanChan <- key
 	}
@@ -200,15 +201,30 @@ func (msgList *messageList) webStat(w http.ResponseWriter, r *http.Request) {
 	msgList.mtx.RUnlock()
 }
 
-func main() {
-	msgList := Init()
-	runtime.GOMAXPROCS(16)
-	handler := syslog.NewChannelHandler(channel)
+func proccessLogChannel() {
+	for logParts := range channel {
+		var logMessage = logMsg{}
+		msg := fmt.Sprint(logParts["message"])
+		logMessage.sessionId, logMessage.payload = parseMessage(msg)
+		parseChan <- &logMessage
+	}
+}
 
-	logwriter, err := nativesyslog.New(nativesyslog.LOG_LOCAL3, "syslog-go")
+func init() {
+	var err error
+	runtime.GOMAXPROCS(16)
+
+	logwriter, err = nativesyslog.New(nativesyslog.LOG_LOCAL4, "syslog-go")
 	if err == nil {
 		log.SetOutput(logwriter)
 	}
+	logwriter.Info("Starting syslog-go server")
+	log.SetFlags(log.Flags() &^ (log.Ldate | log.Ltime))
+}
+
+func main() {
+	msgList := Init()
+	handler := syslog.NewChannelHandler(channel)
 
 	server := syslog.NewServer()
 	server.SetFormat(syslog.RFC5424)
@@ -219,17 +235,25 @@ func main() {
 	http.HandleFunc("/stat", msgList.webStat)
 	go http.ListenAndServe("127.0.0.1:8081", nil)
 
-	go func(channel syslog.LogPartsChannel) {
-		for logParts := range channel {
-			var logMessage = logMsg{}
-			msg := fmt.Sprint(logParts["message"])
-			logMessage.sessionId, logMessage.payload = parseMessage(msg)
-			parseChan <- &logMessage
-			go proccessParseQueue(msgList)
-			go WriteOut(msgList)
-			go cleanQueue(msgList)
-		}
-	}(channel)
+	go proccessLogChannel()
+	go proccessParseQueue(msgList)
+	go WriteOut(msgList)
+	go cleanQueue(msgList)
+	/*
+		go func(channel syslog.LogPartsChannel) {
+			for logParts := range channel {
+				var logMessage = logMsg{}
+
+				msg := fmt.Sprint(logParts["message"])
+				logMessage.sessionId, logMessage.payload = parseMessage(msg)
+				parseChan <- &logMessage
+				go proccessParseQueue(msgList)
+				go WriteOut(msgList)
+				go cleanQueue(msgList)
+
+			}
+		}(channel)
+	*/
 
 	server.Wait()
 
