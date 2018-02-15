@@ -27,22 +27,20 @@ func (m *messageList) Load(key string) *emailMessage {
 
 // метод - сохранение/апдейт записи, отправка в каналы вывода
 func (m *messageList) Save(key, val string) {
-	if val != "removed" {
-		m.mtx.RLock()
-		_, ok := m.Messages[key]
-		m.mtx.RUnlock()
+	m.mtx.RLock()
+	_, ok := m.Messages[key]
+	m.mtx.RUnlock()
 
-		if ok {
-			m.Messages[key].UpdateMessage(val)
-		} else {
-			m.mtx.Lock()
-			m.Messages[key] = &emailMessage{}
-			m.mtx.Unlock()
-			m.Messages[key].UpdateMessage(val)
-		}
-		if m.CheckComplete(key) {
-			exportChan <- key
-		}
+	if ok {
+		m.Messages[key].UpdateMessage(val)
+	} else {
+		m.mtx.Lock()
+		m.Messages[key] = &emailMessage{}
+		m.mtx.Unlock()
+		m.Messages[key].UpdateMessage(val)
+	}
+	if m.CheckComplete(key) {
+		exportChan <- key
 	}
 }
 

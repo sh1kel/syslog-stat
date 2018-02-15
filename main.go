@@ -69,6 +69,9 @@ func parseMessage(msg string) (ok bool, header, payload string) {
 		return false, "", ""
 	}
 	payload = split[1]
+	if payload == " message-id=<>" || payload == " removed" {
+		return false, "", ""
+	}
 	return true, strings.TrimSpace(header), strings.TrimSpace(payload)
 }
 

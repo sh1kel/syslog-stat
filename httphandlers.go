@@ -10,7 +10,7 @@ import (
 // /stat
 func (msgList *messageList) webStat(w http.ResponseWriter, r *http.Request) {
 	msgList.mtx.RLock()
-	fmt.Fprintf(w, "Queue length: %d\nProccessed messages: %d\n", len(msgList.Messages), msgList.msgProccesed)
+	fmt.Fprintf(w, "Queue length: %d\nProccessed emails: %d\n", len(msgList.Messages), msgList.msgProccesed)
 	msgList.mtx.RUnlock()
 }
 

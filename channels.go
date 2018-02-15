@@ -20,10 +20,13 @@ func WriteOut(msgList *messageList) {
 // Основная очередь обработки сообщений
 func ParseQueue(msgList *messageList) {
 	for msg := range parseChan {
-		msgList.Save(msg.sessionId, msg.payload)
 		msgList.mtx.Lock()
-		msgList.msgProccesed++
+		_, ok := msgList.Messages[msg.sessionId]
+		if !ok {
+			msgList.msgProccesed++
+		}
 		msgList.mtx.Unlock()
+		msgList.Save(msg.sessionId, msg.payload)
 	}
 }
 
