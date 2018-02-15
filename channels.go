@@ -38,9 +38,12 @@ func cleanQueue(msgList *messageList) {
 func proccessLogChannel() {
 	for logParts := range channel {
 		var logMessage = logMsg{}
+		var ok = false
 		msg := fmt.Sprint(logParts["message"])
-		logMessage.sessionId, logMessage.payload = parseMessage(msg)
-		parseChan <- &logMessage
+		ok, logMessage.sessionId, logMessage.payload = parseMessage(msg)
+		if ok {
+			parseChan <- &logMessage
+		}
 	}
 }
 

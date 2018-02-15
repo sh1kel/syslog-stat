@@ -59,19 +59,17 @@ func DelayInit() *delays {
 }
 
 // парсинг первоначально приходящей записи
-func parseMessage(msg string) (header, payload string) {
-	split := strings.Split(msg, ":")
+func parseMessage(msg string) (ok bool, header, payload string) {
+	split := strings.SplitN(msg, ":", 2)
 	if len(split) < 2 {
-		return "", strings.TrimSpace(msg)
-	}
-	if len(split) > 2 {
-		header = split[0]
-		payload = strings.Join(split[1:], " ")
-		return strings.TrimSpace(header), strings.TrimSpace(payload)
+		return false, "", ""
 	}
 	header = split[0]
+	if len(header) > 12 {
+		return false, "", ""
+	}
 	payload = split[1]
-	return strings.TrimSpace(header), strings.TrimSpace(payload)
+	return true, strings.TrimSpace(header), strings.TrimSpace(payload)
 }
 
 func init() {
@@ -100,6 +98,7 @@ func main() {
 	http.HandleFunc("/stat", msgList.webStat)
 	http.HandleFunc("/delays/", domainDelays.avgDelay)
 	http.HandleFunc("/domains", domainDelays.listDomains)
+	http.HandleFunc("/debug", msgList.webDebug)
 
 	go http.ListenAndServe("127.0.0.1:8081", nil)
 

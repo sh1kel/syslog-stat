@@ -6,14 +6,16 @@ import (
 	"strings"
 )
 
-// урл со статистикой /stat
+// урл со статистикой
+// /stat
 func (msgList *messageList) webStat(w http.ResponseWriter, r *http.Request) {
 	msgList.mtx.RLock()
 	fmt.Fprintf(w, "Queue length: %d\nProccessed messages: %d\n", len(msgList.Messages), msgList.msgProccesed)
 	msgList.mtx.RUnlock()
 }
 
-// урл с доменом отдает среднюю задержку /delays/domain.tld
+// урл с доменом отдает среднюю задержку
+// /delays/domain.tld
 func (domainDelay *delays) avgDelay(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.Path[1:]
 	domain := strings.Split(path, "/")
@@ -33,7 +35,8 @@ func (domainDelay *delays) avgDelay(w http.ResponseWriter, r *http.Request) {
 	domainDelay.mtx.Unlock()
 }
 
-// урл отдает список доменов, для которых есть статистика /domains
+// урл отдает список доменов, для которых есть статистика
+// /domains
 func (domainDelay *delays) listDomains(w http.ResponseWriter, r *http.Request) {
 	domainDelay.mtx.RLock()
 	for key, _ := range domainDelay.dTable {
@@ -42,4 +45,16 @@ func (domainDelay *delays) listDomains(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	domainDelay.mtx.RUnlock()
+}
+
+// урл с дебагом
+// /debug
+func (msgList *messageList) webDebug(w http.ResponseWriter, r *http.Request) {
+	msgList.mtx.RLock()
+	for key, val := range msgList.Messages {
+		for line := range val.rawString {
+			fmt.Fprintf(w, "%s: %v\n", key, line)
+		}
+	}
+	msgList.mtx.RUnlock()
 }
