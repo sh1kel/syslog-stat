@@ -6,13 +6,14 @@ import (
 	"strings"
 )
 
-// Сервер со статистикоц
+// урл со статистикой /stat
 func (msgList *messageList) webStat(w http.ResponseWriter, r *http.Request) {
 	msgList.mtx.RLock()
 	fmt.Fprintf(w, "Queue length: %d\nProccessed messages: %d\n", len(msgList.Messages), msgList.msgProccesed)
 	msgList.mtx.RUnlock()
 }
 
+// урл с доменом отдает среднюю задержку /delays/domain.tld
 func (domainDelay *delays) avgDelay(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.Path[1:]
 	domain := strings.Split(path, "/")
@@ -25,12 +26,14 @@ func (domainDelay *delays) avgDelay(w http.ResponseWriter, r *http.Request) {
 			total += d
 		}
 		fmt.Fprintf(w, "%.2f\n", total/float32(len(domain[1])))
+		// обнуляем метрики
 		domainDelay.dTable[domain[1]] = []float32{}
 	}
 
 	domainDelay.mtx.Unlock()
 }
 
+// урл отдает список доменов, для которых есть статистика /domains
 func (domainDelay *delays) listDomains(w http.ResponseWriter, r *http.Request) {
 	domainDelay.mtx.RLock()
 	for key, _ := range domainDelay.dTable {

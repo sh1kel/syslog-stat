@@ -19,22 +19,26 @@ var (
 	logwriter  *nativesyslog.Writer
 )
 
+// структура для отправки в канал - домен/задержка
 type domainDelay struct {
 	domain string
 	delay  float32
 }
 
+// общая структура со статистикой
 type delays struct {
 	dTable map[string][]float32
 	mtx    sync.RWMutex
 }
 
+// общая структура с информацией по письмам
 type messageList struct {
 	Messages     map[string]*emailMessage
 	msgProccesed int64
 	mtx          sync.RWMutex
 }
 
+// структура для отправки в канал id сессии/payload
 type logMsg struct {
 	sessionId string
 	payload   string
@@ -47,6 +51,7 @@ func QueueInit() *messageList {
 	}
 }
 
+// инициализация структуры задержек
 func DelayInit() *delays {
 	return &delays{
 		dTable: make(map[string][]float32),
@@ -72,7 +77,7 @@ func parseMessage(msg string) (header, payload string) {
 func init() {
 	var err error
 	runtime.GOMAXPROCS(16)
-
+	// категория, в которую пишутся payment логи (/etc/rsyslog.d/50-default.conf)
 	logwriter, err = nativesyslog.New(nativesyslog.LOG_LOCAL4, "syslog-go")
 	if err == nil {
 		log.SetOutput(logwriter)

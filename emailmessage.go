@@ -6,6 +6,7 @@ import (
 	"sync"
 )
 
+// структура с информацией о сообщении
 type emailMessage struct {
 	From       string
 	To         string
@@ -17,14 +18,14 @@ type emailMessage struct {
 	mtx        sync.RWMutex
 }
 
-// загрузка информации о сообщении
+// метод - загрузка информации о сообщении
 func (m *messageList) Load(key string) *emailMessage {
 	m.mtx.RLock()
 	defer m.mtx.RUnlock()
 	return m.Messages[key]
 }
 
-// сохранение/апдейт записи, отправка в каналы вывода
+// метод - сохранение/апдейт записи, отправка в каналы вывода
 func (m *messageList) Save(key, val string) {
 	if val != "removed" {
 		m.mtx.RLock()
@@ -45,14 +46,14 @@ func (m *messageList) Save(key, val string) {
 	}
 }
 
-// удаление записи-сообщения из очереди
+// метод - удаление записи-сообщения из очереди
 func (m *messageList) Delete(key string) {
 	m.mtx.Lock()
 	delete(m.Messages, key)
 	m.mtx.Unlock()
 }
 
-// проверка заполненности записи о сообщении
+// метод - проверка заполненности записи о сообщении
 func (m *messageList) CheckComplete(key string) bool {
 	m.mtx.RLock()
 	defer m.mtx.RUnlock()

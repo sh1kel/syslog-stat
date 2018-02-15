@@ -2,10 +2,11 @@ package main
 
 import "fmt"
 
-// Вывод zabbix
+// Вывод zabbix и в канал подсчета средней задержки
 func WriteOut(msgList *messageList) {
 	for key := range exportChan {
 		msg := msgList.Load(key)
+		// выводим в сислог только сообщения от payment@mail.youdo.com
 		if msg.From == "payment@mail.youdo.com" {
 			for s := 0; s < len(msg.rawString); s++ {
 				logwriter.Info(key + ": " + msg.rawString[s])
@@ -33,6 +34,7 @@ func cleanQueue(msgList *messageList) {
 	}
 }
 
+// парсинг полученной от сислога строки, разбиение на id сессии и полезную нагрузку
 func proccessLogChannel() {
 	for logParts := range channel {
 		var logMessage = logMsg{}
@@ -42,6 +44,7 @@ func proccessLogChannel() {
 	}
 }
 
+// подсчет средней задержки
 func countAverageDelay(domainDelays *delays) {
 	for delays := range avgcountCh {
 		domainDelays.mtx.RLock()
@@ -50,6 +53,7 @@ func countAverageDelay(domainDelays *delays) {
 		if ok {
 			domainDelays.mtx.Lock()
 			qLen := len(domainDelays.dTable[delays.domain])
+			// если количество метрик больше 200к, удаляем более старые 100к
 			if qLen > 200000 {
 				newDelays := domainDelays.dTable[delays.domain][qLen/2:]
 				domainDelays.dTable[delays.domain] = newDelays
