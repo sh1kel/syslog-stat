@@ -8,6 +8,7 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+	"time"
 )
 
 var (
@@ -75,6 +76,19 @@ func parseMessage(msg string) (ok bool, header, payload string) {
 	return true, strings.TrimSpace(header), strings.TrimSpace(payload)
 }
 
+func cleanStuckedMessages(ticker time.Ticker, msgList *messageList) {
+	for _ = range ticker.C {
+		Now := int32(time.Now().Unix())
+		msgList.mtx.RLock()
+		for key, _ := range msgList.Messages {
+			if (Now - msgList.Messages[key].UpdateTime) > 600 {
+				cleanChan <- key
+			}
+		}
+		msgList.mtx.RUnlock()
+	}
+}
+
 func init() {
 	var err error
 	runtime.GOMAXPROCS(16)
@@ -91,6 +105,7 @@ func main() {
 	msgList := QueueInit()
 	handler := syslog.NewChannelHandler(channel)
 	domainDelays := DelayInit()
+	ticker := time.NewTicker(5 * time.Minute)
 
 	server := syslog.NewServer()
 	server.SetFormat(syslog.RFC5424)
@@ -108,9 +123,10 @@ func main() {
 	go proccessLogChannel()
 	go ParseQueue(msgList)
 	go WriteOut(msgList)
+	go cleanStuckedMessages(*ticker, msgList)
 	go countAverageDelay(domainDelays)
 	go cleanQueue(msgList)
 
 	server.Wait()
-
+	ticker.Stop()
 }

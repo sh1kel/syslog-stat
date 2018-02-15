@@ -4,6 +4,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 )
 
 // структура с информацией о сообщении
@@ -14,6 +15,7 @@ type emailMessage struct {
 	Delay      float32
 	StatusCode string
 	StatusMsg  string
+	UpdateTime int32
 	rawString  []string
 	mtx        sync.RWMutex
 }
@@ -96,7 +98,6 @@ func (msg *emailMessage) UpdateMessage(logRecord string) {
 
 		msg.mtx.Lock()
 		msg.To = strings.TrimSuffix(to, ">")
-		//msg.Relay = strings.Split(relay, "[")[0]
 		msg.Relay = strings.ToLower(domain)
 		msg.Delay = float32(delay)
 		msg.StatusCode = splitStatuses[0]
@@ -106,6 +107,7 @@ func (msg *emailMessage) UpdateMessage(logRecord string) {
 		return
 	}
 	msg.mtx.Lock()
+	msg.UpdateTime = int32(time.Now().Unix())
 	msg.rawString = append(msg.rawString, logRecord)
 	msg.mtx.Unlock()
 
