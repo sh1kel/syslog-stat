@@ -97,7 +97,7 @@ func (msg *emailMessage) UpdateMessage(logRecord string) {
 		msg.mtx.Lock()
 		msg.To = strings.TrimSuffix(to, ">")
 		//msg.Relay = strings.Split(relay, "[")[0]
-		msg.Relay = domain
+		msg.Relay = strings.ToLower(domain)
 		msg.Delay = float32(delay)
 		msg.StatusCode = splitStatuses[0]
 		msg.StatusMsg = splitStatuses[1]
