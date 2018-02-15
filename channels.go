@@ -49,6 +49,11 @@ func countAverageDelay(domainDelays *delays) {
 		domainDelays.mtx.RUnlock()
 		if ok {
 			domainDelays.mtx.Lock()
+			qLen := len(domainDelays.dTable[delays.domain])
+			if qLen > 200000 {
+				newDelays := domainDelays.dTable[delays.domain][qLen/2:]
+				domainDelays.dTable[delays.domain] = newDelays
+			}
 			domainDelays.dTable[delays.domain] = append(domainDelays.dTable[delays.domain], delays.delay)
 			domainDelays.mtx.Unlock()
 		} else {
