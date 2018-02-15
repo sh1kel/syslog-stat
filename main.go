@@ -65,7 +65,7 @@ func parseMessage(msg string) (ok bool, header, payload string) {
 		return false, "", ""
 	}
 	header = split[0]
-	if len(header) > 12 {
+	if len(header) != 12 {
 		return false, "", ""
 	}
 	payload = split[1]

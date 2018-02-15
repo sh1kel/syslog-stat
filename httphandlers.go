@@ -52,7 +52,7 @@ func (domainDelay *delays) listDomains(w http.ResponseWriter, r *http.Request) {
 func (msgList *messageList) webDebug(w http.ResponseWriter, r *http.Request) {
 	msgList.mtx.RLock()
 	for key, val := range msgList.Messages {
-		for line := range val.rawString {
+		for _, line := range val.rawString {
 			fmt.Fprintf(w, "%s: %v\n", key, line)
 		}
 	}
