@@ -68,7 +68,7 @@ func countAverageDelay(domainDelays *delays) {
 			domainDelays.mtx.Unlock()
 		} else {
 			domainDelays.mtx.Lock()
-			domainDelays.dTable[delays.domain] = []float32{delays.delay}
+			domainDelays.dTable[delays.domain] = []float64{delays.delay}
 			domainDelays.mtx.Unlock()
 		}
 	}

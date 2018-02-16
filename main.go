@@ -23,12 +23,12 @@ var (
 // структура для отправки в канал - домен/задержка
 type domainDelay struct {
 	domain string
-	delay  float32
+	delay  float64
 }
 
 // общая структура со статистикой
 type delays struct {
-	dTable map[string][]float32
+	dTable map[string][]float64
 	mtx    sync.RWMutex
 }
 
@@ -55,7 +55,7 @@ func QueueInit() *messageList {
 // инициализация структуры задержек
 func DelayInit() *delays {
 	return &delays{
-		dTable: make(map[string][]float32),
+		dTable: make(map[string][]float64),
 	}
 }
 

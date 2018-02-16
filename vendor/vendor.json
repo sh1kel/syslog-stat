@@ -9,6 +9,12 @@
 			"revisionTime": "2017-01-18T04:09:03Z"
 		},
 		{
+			"checksumSHA1": "+/E1N8iDaHig2Gk4Y6Lhj1lKGco=",
+			"path": "github.com/montanaflynn/stats",
+			"revision": "1bf9dbcd8cbe1fdb75add3785b1d4a9a646269ab",
+			"revisionTime": "2017-12-01T20:20:39Z"
+		},
+		{
 			"checksumSHA1": "op++1yFhmH2TptO0uqjeF5J3faU=",
 			"path": "gitlab.youdo.sg/sysadmins/syslog-go",
 			"revision": "560f05caa4f75e06b1ece9d43571d2f854da8934",

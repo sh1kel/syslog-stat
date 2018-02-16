@@ -12,7 +12,7 @@ type emailMessage struct {
 	From       string
 	To         string
 	Relay      string
-	Delay      float32
+	Delay      float64
 	StatusCode string
 	StatusMsg  string
 	UpdateTime int32
@@ -99,7 +99,7 @@ func (msg *emailMessage) UpdateMessage(logRecord string) {
 		msg.mtx.Lock()
 		msg.To = strings.TrimSuffix(to, ">")
 		msg.Relay = strings.ToLower(domain)
-		msg.Delay = float32(delay)
+		msg.Delay = delay
 		msg.StatusCode = splitStatuses[0]
 		msg.StatusMsg = splitStatuses[1]
 		msg.rawString = append(msg.rawString, logRecord)

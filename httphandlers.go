@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/montanaflynn/stats"
 	"net/http"
 	"strings"
 )
@@ -22,14 +23,11 @@ func (domainDelay *delays) avgDelay(w http.ResponseWriter, r *http.Request) {
 	domainDelay.mtx.Lock()
 	_, ok := domainDelay.dTable[domain[1]]
 	if ok {
-		var total float32 = 0
-		var d float32
-		for _, d = range domainDelay.dTable[domain[1]] {
-			total += d
-		}
-		fmt.Fprintf(w, "%.2f\n", total/float32(len(domain[1])))
+
+		a, _ := stats.Percentile(domainDelay.dTable[domain[1]], 90)
+		fmt.Fprintf(w, "%.2f\n", a)
 		// обнуляем метрики
-		domainDelay.dTable[domain[1]] = []float32{}
+		domainDelay.dTable[domain[1]] = []float64{}
 	}
 
 	domainDelay.mtx.Unlock()
