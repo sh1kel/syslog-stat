@@ -23,11 +23,14 @@ func (domainDelay *delays) avgDelay(w http.ResponseWriter, r *http.Request) {
 	domainDelay.mtx.Lock()
 	_, ok := domainDelay.dTable[domain[1]]
 	if ok {
-
-		a, _ := stats.Percentile(domainDelay.dTable[domain[1]], 90)
-		fmt.Fprintf(w, "%.2f\n", a)
-		// обнуляем метрики
-		domainDelay.dTable[domain[1]] = []float64{}
+		if len(domainDelay.dTable[domain[1]]) == 0 {
+			fmt.Fprintf(w, "%.2f\n", 0.00)
+		} else {
+			a, _ := stats.Percentile(domainDelay.dTable[domain[1]], 90)
+			fmt.Fprintf(w, "%.2f\n", a)
+			// обнуляем метрики
+			domainDelay.dTable[domain[1]] = []float64{}
+		}
 	}
 
 	domainDelay.mtx.Unlock()
