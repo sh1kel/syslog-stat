@@ -34,12 +34,14 @@ func (m *messageList) Save(key, val string) {
 	m.mtx.RUnlock()
 
 	if ok {
+		m.mtx.Lock()
 		m.Messages[key].UpdateMessage(val)
+		m.mtx.Unlock()
 	} else {
 		m.mtx.Lock()
 		m.Messages[key] = &emailMessage{}
-		m.mtx.Unlock()
 		m.Messages[key].UpdateMessage(val)
+		m.mtx.Unlock()
 	}
 	if m.CheckComplete(key) {
 		exportChan <- key
