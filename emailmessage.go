@@ -30,18 +30,17 @@ func (m *messageList) Load(key string) *emailMessage {
 
 // метод - сохранение/апдейт записи, отправка в каналы вывода
 func (m *messageList) Save(key, val string) {
-	m.mtx.RLock()
+	m.mtx.Lock()
 	_, ok := m.Messages[key]
-	m.mtx.RUnlock()
 
 	if ok {
 		m.Messages[key].UpdateMessage(val)
 	} else {
-		m.mtx.Lock()
 		m.Messages[key] = &emailMessage{}
-		m.mtx.Unlock()
 		m.Messages[key].UpdateMessage(val)
 	}
+	m.mtx.Unlock()
+
 	if m.CheckComplete(key) {
 		exportChan <- key
 	}
@@ -100,14 +99,14 @@ func (msg *emailMessage) UpdateMessage(logRecord string) {
 			if len(fullStatus) > 1 {
 				strStatus = fullStatus[1]
 			} else {
-				log.Printf("Error log part: %v\n", fullStatus)
+				log.Printf("Error log part: %s\n", logRecord)
 			}
 			splitStatuses := strings.SplitN(strStatus, " ", 2)
 			if len(splitStatuses) > 1 {
 				StatusMsg = splitStatuses[1]
 			} else {
 				StatusMsg = "Unknown"
-				log.Printf("Error log part: %v\n", splitStatuses)
+				log.Printf("Error log part: %s\n", logRecord)
 			}
 			delay, _ = strconv.ParseFloat(strings.Split(stringParts[2], "=")[1], 32)
 		} else {
