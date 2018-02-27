@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"strconv"
 	"strings"
@@ -25,20 +26,26 @@ type emailMessage struct {
 func (m *messageList) Load(key string) *emailMessage {
 	m.mtx.RLock()
 	defer m.mtx.RUnlock()
-	return m.Messages[key]
+	ret := m.Messages[key]
+
+	if ret == nil {
+		panic(fmt.Sprintf("null message for key: %v", key))
+	}
+
+	return ret
 }
 
 // метод - сохранение/апдейт записи, отправка в каналы вывода
 func (m *messageList) Save(key, val string) {
 	m.mtx.Lock()
-	_, ok := m.Messages[key]
+	msg, ok := m.Messages[key]
 
-	if ok {
-		m.Messages[key].UpdateMessage(val)
-	} else {
-		m.Messages[key] = &emailMessage{}
-		m.Messages[key].UpdateMessage(val)
+	if !ok {
+		msg = pool.Get().(*emailMessage)
+		m.Messages[key] = msg
 	}
+	msg.UpdateMessage(val)
+
 	m.mtx.Unlock()
 
 	if m.CheckComplete(key) {
@@ -49,7 +56,11 @@ func (m *messageList) Save(key, val string) {
 // метод - удаление записи-сообщения из очереди
 func (m *messageList) Delete(key string) {
 	m.mtx.Lock()
-	delete(m.Messages, key)
+	tmp, ok := m.Messages[key]
+	if ok {
+		delete(m.Messages, key)
+		pool.Put(tmp)
+	}
 	m.mtx.Unlock()
 }
 
@@ -57,11 +68,7 @@ func (m *messageList) Delete(key string) {
 func (m *messageList) CheckComplete(key string) bool {
 	m.mtx.RLock()
 	defer m.mtx.RUnlock()
-	if m.Messages[key].To != "" {
-		return true
-	} else {
-		return false
-	}
+	return m.Messages[key].To != ""
 }
 
 // апдейт записи

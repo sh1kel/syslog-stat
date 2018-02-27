@@ -6,6 +6,7 @@ import "fmt"
 func WriteOut(msgList *messageList) {
 	for key := range exportChan {
 		msg := msgList.Load(key)
+		msg.mtx.RLock()
 		// выводим в сислог только сообщения от payment@mail.youdo.com
 		if msg.From == "payment@mail.youdo.com" {
 			for s := 0; s < len(msg.rawString); s++ {
@@ -13,6 +14,8 @@ func WriteOut(msgList *messageList) {
 			}
 		}
 		avgcountCh <- domainDelay{msg.Relay, msg.Delay}
+		msg.mtx.RUnlock()
+
 		cleanChan <- key
 	}
 }
@@ -60,7 +63,7 @@ func countAverageDelay(domainDelays *delays) {
 			domainDelays.mtx.Lock()
 			qLen := len(domainDelays.dTable[delays.domain])
 			// если количество метрик больше 200к, удаляем более старые 100к
-			if qLen > 200000 {
+			if qLen > 190000 {
 				newDelays := domainDelays.dTable[delays.domain][qLen/2:]
 				domainDelays.dTable[delays.domain] = newDelays
 			}
@@ -68,6 +71,7 @@ func countAverageDelay(domainDelays *delays) {
 			domainDelays.mtx.Unlock()
 		} else {
 			domainDelays.mtx.Lock()
+			domainDelays.dTable[delays.domain] = make([]float64, 1, 200000)
 			domainDelays.dTable[delays.domain] = []float64{delays.delay}
 			domainDelays.mtx.Unlock()
 		}

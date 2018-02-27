@@ -45,6 +45,12 @@ type logMsg struct {
 	payload   string
 }
 
+var pool = sync.Pool{
+	New: func() interface{} {
+		return &emailMessage{}
+	},
+}
+
 // инициализация структуры очереди
 func QueueInit() *messageList {
 	return &messageList{
@@ -66,7 +72,7 @@ func parseMessage(msg string) (ok bool, header, payload string) {
 		return false, "", ""
 	}
 	header = split[0]
-	if len(header) != 12 {
+	if len(header) > 12 {
 		return false, "", ""
 	}
 	payload = split[1]
@@ -105,7 +111,7 @@ func main() {
 	msgList := QueueInit()
 	handler := syslog.NewChannelHandler(channel)
 	domainDelays := DelayInit()
-	ticker := time.NewTicker(5 * time.Minute)
+	ticker := time.NewTicker(90 * time.Second)
 
 	server := syslog.NewServer()
 	server.SetFormat(syslog.RFC5424)
