@@ -9,10 +9,8 @@ import (
 
 // урл со статистикой
 // /stat
-func (msgList *messageList) webStat(w http.ResponseWriter, r *http.Request) {
-	msgList.mtx.RLock()
-	fmt.Fprintf(w, "Queue length: %d\nProccessed emails: %d\n", len(msgList.Messages), msgList.msgProccesed)
-	msgList.mtx.RUnlock()
+func webStat(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintf(w, "Queue length: %d\nProccessed emails: %d\n", 0, gMsgCounter)
 }
 
 // урл с доменом отдает среднюю задержку
@@ -48,6 +46,7 @@ func (domainDelay *delays) listDomains(w http.ResponseWriter, r *http.Request) {
 	domainDelay.mtx.RUnlock()
 }
 
+/*
 // урл с дебагом
 // /debug
 func (msgList *messageList) webDebug(w http.ResponseWriter, r *http.Request) {
@@ -59,3 +58,4 @@ func (msgList *messageList) webDebug(w http.ResponseWriter, r *http.Request) {
 	}
 	msgList.mtx.RUnlock()
 }
+*/

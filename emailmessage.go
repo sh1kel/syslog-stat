@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"strconv"
 	"strings"
@@ -19,72 +18,20 @@ type emailMessage struct {
 	StatusMsg  string
 	UpdateTime int32
 	rawString  []string
+	SessionId  string
 	mtx        sync.RWMutex
 }
 
-// метод - загрузка информации о сообщении
-func (m *messageList) Load(key string) *emailMessage {
-	m.mtx.RLock()
-	defer m.mtx.RUnlock()
-	ret := m.Messages[key]
-
-	if ret == nil {
-		panic(fmt.Sprintf("null message for key: %v", key))
-	}
-
-	return ret
-}
-
-// метод - сохранение/апдейт записи, отправка в каналы вывода
-func (m *messageList) Save(key, val string) {
-	m.mtx.Lock()
-	msg, ok := m.Messages[key]
-
-	if !ok {
-		msg = pool.Get().(*emailMessage)
-		m.Messages[key] = msg
-	}
-	msg.UpdateMessage(val)
-
-	m.mtx.Unlock()
-
-	if m.CheckComplete(key) {
-		exportChan <- key
-	}
-}
-
-// метод - удаление записи-сообщения из очереди
-func (m *messageList) Delete(key string) {
-	m.mtx.Lock()
-	tmp, ok := m.Messages[key]
-	if ok {
-		delete(m.Messages, key)
-		pool.Put(tmp)
-	}
-	m.mtx.Unlock()
-}
-
-// метод - проверка заполненности записи о сообщении
-func (m *messageList) CheckComplete(key string) bool {
-	m.mtx.RLock()
-	defer m.mtx.RUnlock()
-	return m.Messages[key].To != ""
-}
-
 // апдейт записи
-func (msg *emailMessage) UpdateMessage(logRecord string) {
-	// Добавляем отрпавителя
+func (msg *emailMessage) UpdateMessage(sessionID, logRecord string) {
 	if strings.HasPrefix(logRecord, "from=") {
 		stringParts := strings.SplitN(logRecord, ",", 2)
 		from := strings.TrimPrefix(stringParts[0], "from=<")
 		msg.mtx.Lock()
 		msg.From = strings.TrimSuffix(from, ">")
-		msg.rawString = append(msg.rawString, logRecord)
 		msg.mtx.Unlock()
 		return
-	}
-	// Добавляем получателя, релей, задержку, статус отправки
-	if strings.HasPrefix(logRecord, "to=") {
+	} else if strings.HasPrefix(logRecord, "to=") {
 		var domain, RawStatus, strStatus, StatusMsg string
 		var delay float64
 		stringParts := strings.Split(logRecord, ",")
@@ -124,12 +71,14 @@ func (msg *emailMessage) UpdateMessage(logRecord string) {
 		msg.Relay = strings.ToLower(domain)
 		msg.Delay = delay
 		msg.StatusCode = StatusMsg
-		msg.rawString = append(msg.rawString, logRecord)
 		msg.mtx.Unlock()
 		return
 
 	}
 	msg.mtx.Lock()
+	if msg.SessionId == "" {
+		msg.SessionId = sessionID
+	}
 	msg.UpdateTime = int32(time.Now().Unix())
 	msg.rawString = append(msg.rawString, logRecord)
 	msg.mtx.Unlock()

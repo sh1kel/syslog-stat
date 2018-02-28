@@ -12,12 +12,10 @@ import (
 )
 
 var (
-	channel    = make(syslog.LogPartsChannel)
-	exportChan = make(chan string, 100)
-	parseChan  = make(chan *logMsg, 100)
-	cleanChan  = make(chan string, 100)
-	avgcountCh = make(chan domainDelay, 100)
-	logwriter  *nativesyslog.Writer
+	avgcountCh    = make(chan domainDelay, 100)
+	syslogChannel = make(syslog.LogPartsChannel)
+	logwriter     *nativesyslog.Writer
+	gMsgCounter   int64
 )
 
 // структура для отправки в канал - домен/задержка
@@ -32,30 +30,10 @@ type delays struct {
 	mtx    sync.RWMutex
 }
 
-// общая структура с информацией по письмам
-type messageList struct {
-	Messages     map[string]*emailMessage
-	msgProccesed int64
-	mtx          sync.RWMutex
-}
-
 // структура для отправки в канал id сессии/payload
 type logMsg struct {
 	sessionId string
 	payload   string
-}
-
-var pool = sync.Pool{
-	New: func() interface{} {
-		return &emailMessage{}
-	},
-}
-
-// инициализация структуры очереди
-func QueueInit() *messageList {
-	return &messageList{
-		Messages: make(map[string]*emailMessage),
-	}
 }
 
 // инициализация структуры задержек
@@ -82,19 +60,6 @@ func parseMessage(msg string) (ok bool, header, payload string) {
 	return true, strings.TrimSpace(header), strings.TrimSpace(payload)
 }
 
-func cleanStuckedMessages(ticker time.Ticker, msgList *messageList) {
-	for _ = range ticker.C {
-		Now := int32(time.Now().Unix())
-		msgList.mtx.RLock()
-		for key, _ := range msgList.Messages {
-			if (Now - msgList.Messages[key].UpdateTime) > 600 {
-				cleanChan <- key
-			}
-		}
-		msgList.mtx.RUnlock()
-	}
-}
-
 func init() {
 	var err error
 	runtime.GOMAXPROCS(16)
@@ -108,10 +73,13 @@ func init() {
 }
 
 func main() {
-	msgList := QueueInit()
-	handler := syslog.NewChannelHandler(channel)
-	domainDelays := DelayInit()
+	cleanChan := make(chan string, 100)
+	exportChan := make(chan *emailMessage, 100)
+
 	ticker := time.NewTicker(90 * time.Second)
+
+	handler := syslog.NewChannelHandler(syslogChannel)
+	domainDelays := DelayInit()
 
 	server := syslog.NewServer()
 	server.SetFormat(syslog.RFC5424)
@@ -119,19 +87,16 @@ func main() {
 	server.ListenUDP("127.0.0.1:5141")
 	server.Boot()
 
-	http.HandleFunc("/stat", msgList.webStat)
+	http.HandleFunc("/stat", webStat)
 	http.HandleFunc("/delays/", domainDelays.avgDelay)
 	http.HandleFunc("/domains", domainDelays.listDomains)
-	http.HandleFunc("/debug", msgList.webDebug)
+	//http.HandleFunc("/debug", msgList.webDebug)
 
 	go http.ListenAndServe("127.0.0.1:8081", nil)
 
-	go proccessLogChannel()
-	go ParseQueue(msgList)
-	go WriteOut(msgList)
-	go cleanStuckedMessages(*ticker, msgList)
+	go proccessLogChannel(cleanChan, exportChan, ticker)
+	go WriteOut(cleanChan, exportChan)
 	go countAverageDelay(domainDelays)
-	go cleanQueue(msgList)
 
 	server.Wait()
 	ticker.Stop()
