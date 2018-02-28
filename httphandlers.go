@@ -5,17 +5,18 @@ import (
 	"github.com/montanaflynn/stats"
 	"net/http"
 	"strings"
+	"sync/atomic"
 )
 
 // урл со статистикой
 // /stat
 func webStat(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "Queue length: %d\nProccessed emails: %d\n", 0, gMsgCounter)
+	fmt.Fprintf(w, "Queue length: %d\nProccessed emails: %d\n", atomic.LoadUint32(&gQueueLen), gMsgCounter)
 }
 
 // урл с доменом отдает среднюю задержку
 // /delays/domain.tld
-func (domainDelay *delays) avgDelay(w http.ResponseWriter, r *http.Request) {
+func (domainDelay *delaysMap) avgDelay(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.Path[1:]
 	domain := strings.Split(path, "/")
 	domainDelay.mtx.Lock()
@@ -30,13 +31,12 @@ func (domainDelay *delays) avgDelay(w http.ResponseWriter, r *http.Request) {
 			domainDelay.dTable[domain[1]] = []float64{}
 		}
 	}
-
 	domainDelay.mtx.Unlock()
 }
 
 // урл отдает список доменов, для которых есть статистика
 // /domains
-func (domainDelay *delays) listDomains(w http.ResponseWriter, r *http.Request) {
+func (domainDelay *delaysMap) listDomains(w http.ResponseWriter, r *http.Request) {
 	domainDelay.mtx.RLock()
 	for key, _ := range domainDelay.dTable {
 		if key != "" {

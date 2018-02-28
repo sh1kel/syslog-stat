@@ -2,13 +2,15 @@ package main
 
 import (
 	"fmt"
-	"runtime"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
 // Вывод zabbix и в канал подсчета средней задержки
-func WriteOut(cleanChan chan string, exportChan chan *emailMessage) {
+func writeOut(cleanChan chan string, exportChan chan *emailMessage, avgcountCh chan *domainDelay, wg *sync.WaitGroup) {
+	defer wg.Done()
+
 	for msg := range exportChan {
 		msg.mtx.RLock()
 		// выводим в сислог только сообщения от payment@mail.youdo.com
@@ -17,14 +19,18 @@ func WriteOut(cleanChan chan string, exportChan chan *emailMessage) {
 				logwriter.Info(msg.SessionId + ": " + msg.rawString[s])
 			}
 		}
-		avgcountCh <- domainDelay{msg.Relay, msg.Delay}
+		avgcountCh <- &domainDelay{msg.Relay, msg.Delay}
 		cleanChan <- msg.SessionId
 		msg.mtx.RUnlock()
 	}
+	logwriter.Info("Stopping writer.")
+	close(avgcountCh)
 }
 
 // парсинг полученной от сислога строки
-func proccessLogChannel(cleanChan chan string, exportChan chan *emailMessage, ticker *time.Ticker) {
+func proccessLogChannel(cleanChan chan string, exportChan chan *emailMessage, ticker *time.Ticker, ctlCh chan struct{}, wg *sync.WaitGroup) {
+	defer wg.Done()
+
 	m := make(map[string]*emailMessage)
 
 	var pool = sync.Pool{
@@ -55,6 +61,7 @@ func proccessLogChannel(cleanChan chan string, exportChan chan *emailMessage, ti
 					exportChan <- m[logMessage.sessionId]
 				}
 			}
+			atomic.StoreUint32(&gQueueLen, uint32(len(m)))
 		case key := <-cleanChan:
 			fmt.Printf("get new message for delete: %s\n", key)
 			val, ok := m[key]
@@ -70,23 +77,26 @@ func proccessLogChannel(cleanChan chan string, exportChan chan *emailMessage, ti
 					pool.Put(val)
 				}
 			}
-		default:
-			runtime.Gosched()
+		case <-ctlCh:
+			logwriter.Info("Stopping parser.")
+			close(exportChan)
+			return
 		}
 	}
 }
 
 // подсчет средней задержки
-func countAverageDelay(domainDelays *delays) {
-	for delays := range avgcountCh {
+func countAverageDelay(domainDelays *delaysMap, avgCountChan chan *domainDelay, wg *sync.WaitGroup) {
+	defer wg.Done()
+	for delays := range avgCountChan {
 		domainDelays.mtx.RLock()
 		_, ok := domainDelays.dTable[delays.domain]
 		domainDelays.mtx.RUnlock()
 		if ok {
 			domainDelays.mtx.Lock()
 			qLen := len(domainDelays.dTable[delays.domain])
-			// если количество метрик больше 200к, удаляем более старые 100к
-			if qLen >= 200000 {
+			// если количество метрик больше 20к, удаляем более старые 10к
+			if qLen >= 20000 {
 				newDelays := domainDelays.dTable[delays.domain][qLen/2:]
 				domainDelays.dTable[delays.domain] = newDelays
 			}
@@ -94,9 +104,10 @@ func countAverageDelay(domainDelays *delays) {
 			domainDelays.mtx.Unlock()
 		} else {
 			domainDelays.mtx.Lock()
-			domainDelays.dTable[delays.domain] = make([]float64, 1, 200000)
+			domainDelays.dTable[delays.domain] = make([]float64, 1, 20000)
 			domainDelays.dTable[delays.domain] = append(domainDelays.dTable[delays.domain], delays.delay)
 			domainDelays.mtx.Unlock()
 		}
 	}
+	logwriter.Info("Stopping stat.")
 }
