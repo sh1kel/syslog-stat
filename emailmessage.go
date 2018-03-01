@@ -24,8 +24,11 @@ type emailMessage struct {
 
 // Очистка структуры перед удалением
 func (msg *emailMessage) Clean() {
+	msg.mtx.Lock()
 	msg.To = ""
 	msg.rawString = []string{}
+	msg.SessionId = ""
+	msg.mtx.Unlock()
 }
 
 // апдейт записи

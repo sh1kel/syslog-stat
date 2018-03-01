@@ -39,6 +39,7 @@ func proccessLogChannel(cleanChan chan string, exportChan chan *emailMessage, ti
 			return &emailMessage{}
 		},
 	}
+
 	for {
 		select {
 		case logParts := <-syslogChannel:
@@ -52,6 +53,7 @@ func proccessLogChannel(cleanChan chan string, exportChan chan *emailMessage, ti
 				if !ok {
 					messagePtr := pool.Get().(*emailMessage)
 					m[logMessage.sessionId] = messagePtr
+					//m[logMessage.sessionId] = &emailMessage{}
 				}
 				m[logMessage.sessionId].UpdateMessage(logMessage.sessionId, logMessage.payload)
 				if m[logMessage.sessionId].To != "" {
@@ -73,6 +75,7 @@ func proccessLogChannel(cleanChan chan string, exportChan chan *emailMessage, ti
 			Now := int32(time.Now().Unix())
 			for key, val := range m {
 				if (Now - val.UpdateTime) > 300 {
+					m[key].Clean()
 					delete(m, key)
 					pool.Put(val)
 					i++

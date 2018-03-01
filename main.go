@@ -55,7 +55,7 @@ func parseMessage(msg string) (ok bool, header, payload string) {
 		return false, "", ""
 	}
 	header = split[0]
-	if len(header) != 12 {
+	if len(strings.Trim(header, " ")) != 11 {
 		return false, "", ""
 	}
 	payload = split[1]
@@ -116,7 +116,7 @@ func main() {
 	http.HandleFunc("/stat", webStat)
 	http.HandleFunc("/delays/", domainDelays.avgDelay)
 	http.HandleFunc("/domains", domainDelays.listDomains)
-	//http.HandleFunc("/debug", msgList.webDebug)
+	http.HandleFunc("/debug", domainDelays.webDebug)
 
 	go http.ListenAndServe("127.0.0.1:8081", nil)
 

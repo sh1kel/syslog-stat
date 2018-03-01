@@ -46,16 +46,16 @@ func (domainDelay *delaysMap) listDomains(w http.ResponseWriter, r *http.Request
 	domainDelay.mtx.RUnlock()
 }
 
-/*
 // урл с дебагом
 // /debug
-func (msgList *messageList) webDebug(w http.ResponseWriter, r *http.Request) {
-	msgList.mtx.RLock()
-	for key, val := range msgList.Messages {
-		for _, line := range val.rawString {
-			fmt.Fprintf(w, "%s: %v\n", key, line)
+func (domainDelay *delaysMap) webDebug(w http.ResponseWriter, r *http.Request) {
+	/*
+		for key, val := range debugMap {
+			fmt.Fprintf(w, "ID: %s\n", key)
+			for _, line := range val.rawString {
+				fmt.Fprintf(w, "%s\n", line)
+			}
 		}
-	}
-	msgList.mtx.RUnlock()
+	*/
+	fmt.Fprintln(w, "dump")
 }
-*/
