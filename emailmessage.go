@@ -22,6 +22,12 @@ type emailMessage struct {
 	mtx        sync.RWMutex
 }
 
+// Очистка структуры перед удалением
+func (msg *emailMessage) Clean() {
+	msg.To = ""
+	msg.rawString = []string{}
+}
+
 // апдейт записи
 func (msg *emailMessage) UpdateMessage(sessionID, logRecord string) {
 	if strings.HasPrefix(logRecord, "from=") {
@@ -30,7 +36,6 @@ func (msg *emailMessage) UpdateMessage(sessionID, logRecord string) {
 		msg.mtx.Lock()
 		msg.From = strings.TrimSuffix(from, ">")
 		msg.mtx.Unlock()
-		return
 	} else if strings.HasPrefix(logRecord, "to=") {
 		var domain, RawStatus, strStatus, StatusMsg string
 		var delay float64
@@ -72,8 +77,6 @@ func (msg *emailMessage) UpdateMessage(sessionID, logRecord string) {
 		msg.Delay = delay
 		msg.StatusCode = StatusMsg
 		msg.mtx.Unlock()
-		return
-
 	}
 	msg.mtx.Lock()
 	if msg.SessionId == "" {

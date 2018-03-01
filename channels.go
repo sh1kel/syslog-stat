@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -44,7 +45,6 @@ func proccessLogChannel(cleanChan chan string, exportChan chan *emailMessage, ti
 			var logMessage = logMsg{}
 			var ok = false
 			msg := fmt.Sprint(logParts["message"])
-			//fmt.Printf("get new log message: %v\n", logParts)
 			ok, logMessage.sessionId, logMessage.payload = parseMessage(msg)
 
 			if ok {
@@ -52,8 +52,6 @@ func proccessLogChannel(cleanChan chan string, exportChan chan *emailMessage, ti
 				if !ok {
 					messagePtr := pool.Get().(*emailMessage)
 					m[logMessage.sessionId] = messagePtr
-					fmt.Printf("got address for session %s: %p\n", logMessage.sessionId, messagePtr)
-					// m[logMessage.sessionId] = pool.Get().(*emailMessage)
 				}
 				m[logMessage.sessionId].UpdateMessage(logMessage.sessionId, logMessage.payload)
 				if m[logMessage.sessionId].To != "" {
@@ -63,20 +61,25 @@ func proccessLogChannel(cleanChan chan string, exportChan chan *emailMessage, ti
 			}
 			atomic.StoreUint32(&gQueueLen, uint32(len(m)))
 		case key := <-cleanChan:
-			fmt.Printf("get new message for delete: %s\n", key)
 			val, ok := m[key]
 			if ok {
+				m[key].Clean()
 				delete(m, key)
 				pool.Put(val)
 			}
+			atomic.StoreUint32(&gQueueLen, uint32(len(m)))
 		case <-ticker.C:
+			i := 0
 			Now := int32(time.Now().Unix())
 			for key, val := range m {
-				if (Now - val.UpdateTime) > 600 {
+				if (Now - val.UpdateTime) > 300 {
 					delete(m, key)
 					pool.Put(val)
+					i++
 				}
 			}
+			logwriter.Info("Deleted old objects: " + strconv.Itoa(i))
+			atomic.StoreUint32(&gQueueLen, uint32(len(m)))
 		case <-ctlCh:
 			logwriter.Info("Stopping parser.")
 			close(exportChan)

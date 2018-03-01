@@ -55,7 +55,7 @@ func parseMessage(msg string) (ok bool, header, payload string) {
 		return false, "", ""
 	}
 	header = split[0]
-	if len(header) > 12 {
+	if len(header) != 12 {
 		return false, "", ""
 	}
 	payload = split[1]
@@ -83,7 +83,7 @@ func main() {
 	avgcountCh := make(chan *domainDelay, 100)
 	controlChan := make(chan struct{}, 3)
 	sigChan := make(chan os.Signal, 1)
-	signal.Notify(sigChan, os.Interrupt, syscall.SIGKILL)
+	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
 	var wg sync.WaitGroup
 
 	// profiling
@@ -98,7 +98,7 @@ func main() {
 	*/
 	// end
 
-	ticker := time.NewTicker(90 * time.Second)
+	ticker := time.NewTicker(1 * time.Minute)
 
 	handler := syslog.NewChannelHandler(syslogChannel)
 	domainDelays := DelayInit()
