@@ -68,7 +68,7 @@ func (msg *emailMessage) UpdateMessage(sessionID, logRecord string) {
 				StatusMsg = splitStatuses[1]
 			} else {
 				StatusMsg = "Unknown"
-				log.Printf("Error log part: %s\n", logRecord)
+				//log.Printf("Error log part: %s\n", logRecord)
 			}
 			delay, _ = strconv.ParseFloat(strings.Split(stringParts[2], "=")[1], 32)
 		} else {
