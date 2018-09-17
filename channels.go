@@ -15,7 +15,7 @@ func writeOut(cleanChan chan string, exportChan chan *emailMessage, avgcountCh c
 	for msg := range exportChan {
 		msg.mtx.RLock()
 		// выводим в сислог только сообщения от payment@mail.youdo.com
-		if msg.From == "payment@mail.youdo.com" {
+		if msg.From == "user@mail.tld" {
 			for s := 0; s < len(msg.rawString); s++ {
 				logwriter.Info(msg.SessionId + ": " + msg.rawString[s])
 			}
